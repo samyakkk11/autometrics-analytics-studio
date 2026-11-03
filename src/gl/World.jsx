@@ -209,7 +209,15 @@ function Network() {
 }
 
 /* ------------------------------------------------------------------ camera, stations, effects */
-const LAYOUT = [{ d: [2.1, 0, 1.45], m: [0, -1.0, 1.0] }, { d: [1.95, -0.1, 0.74], m: [0, 1.5, 0.62] }, { d: [-2.3, 0, 1.5], m: [0, 1.4, 1.0] }, { d: [1.85, 0, 0.86], m: [0, 1.45, 0.8] }, { d: [1.85, 0, 0.86], m: [0, 1.45, 0.8] }, { d: [0, 0, 1.25], m: [0, 0, 0.9] }, { d: [0, 0, 1.25], m: [0, 0, 0.9] }]
+const LAYOUT = [
+  { d: [2.1, 0, 1.45], m: [0, -1.65, 0.58] },
+  { d: [1.95, -0.1, 0.74], m: [0, 1.9, 0.38] },
+  { d: [-2.3, 0, 1.5], m: [0, 1.4, 1.0] },
+  { d: [1.85, 0, 0.86], m: [0, 1.7, 0.52] },
+  { d: [1.85, 0, 0.86], m: [0, 1.7, 0.52] },
+  { d: [0, 0, 1.25], m: [0, 0, 0.9] },
+  { d: [0, 0, 1.25], m: [0, 0, 0.9] },
+]
 function Station({ i, children }) {
   const g = useRef()
   useFrame(({ size }) => { const ratio = size.width / size.height, mob = ratio < 0.9 || size.width < 860, useMobile = mob && !(ratio >= 0.9 && size.width >= 600 && i < 2), l = LAYOUT[i][useMobile ? 'm' : 'd'], heroZoom = i === 0 ? ST.heroExit : 0, processZoom = i === 2 ? ST.engagementExit : 0; g.current.position.set(l[0], l[1], -STEP * i + heroZoom * 12 + processZoom * 12); g.current.scale.setScalar(l[2] * (1 + heroZoom * 3.5 + processZoom * 3.5)); g.current.visible = Math.abs(ST.s - i) < 0.97 && !(i === 0 && ST.hideHeroVisual) && !(i === 2 && ST.hideProcessVisual) && !(i === 3 && ST.hideProjectVisual) })
