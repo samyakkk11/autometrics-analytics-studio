@@ -1,0 +1,35 @@
+export const FREELANCE_PROJECT = {
+  id: 'indiecraft-business-manager',
+  title: 'IndieCraft Business Manager',
+  client: 'IndieCraft',
+  repo: 'https://github.com/samyakkk11/IndieCraft-Business-Manager',
+  category: 'Freelance client work · Business automation · Analytics',
+  summary: 'A cloud-based business manager for invoicing, order tracking, and business reporting.',
+  challenge: [
+    'Transaction records and older invoices were stored in unstructured formats.',
+    'Order status, advance payments, and outstanding balances were difficult to track together.',
+    'Creating invoices and maintaining a reliable register required repetitive manual work.',
+  ],
+  solution: [
+    'Organized and verified the client’s transaction and invoice records.',
+    'Delivered an automated business manager for invoices, orders, and payment tracking.',
+    'Moved the workflow to Google Sheets and Apps Script for cloud access.',
+  ],
+  features: [
+    'Organized and verified historical invoices and transaction records.',
+    'Automated invoice generation and synchronization to a master invoice register.',
+    'Tracked orders, advance payments, outstanding balances, and fulfillment status.',
+    'Added operational and business analytics dashboards, a standalone web dashboard, and a unit economics report.',
+  ],
+  data: 'Client transaction logs and historical PDF invoice records, reviewed and cross-checked with the client.',
+  tools: ['Microsoft Excel', 'VBA', 'Google Sheets', 'Google Apps Script', 'JavaScript', 'HTML5', 'CSS3', 'Business analytics'],
+  shots: [
+    { src: '/freelance-indiecraft/mess.png', label: 'Unstructured source records' },
+    { src: '/freelance-indiecraft/structured.png', label: 'Structured data workspace' },
+    { src: '/freelance-indiecraft/structured2.png', label: 'Verified transaction register' },
+    { src: '/freelance-indiecraft/invoice.png', label: 'Automated invoice template' },
+    { src: '/freelance-indiecraft/feedback.png', label: 'Order alerts and system feedback' },
+    { src: '/freelance-indiecraft/automated.png', label: 'Business manager and operational dashboard' },
+    { src: '/freelance-indiecraft/dashboard.png', label: 'Executive analytics dashboard' },
+  ],
+}
