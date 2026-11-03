@@ -249,7 +249,6 @@ export function Contact() {
           </aside>
         </div>
         <form className="inquiry-form" onSubmit={submit} onInvalid={() => setStatus('Please complete the required fields and enter a valid business email.')}>
-          <div className="form-trap" aria-hidden="true"><input name="website" tabIndex="-1" autoComplete="off" /></div>
           <label>Your name<input name="name" autoComplete="name" required /></label>
           <label>Business email<input type="email" name="email" autoComplete="email" required /></label>
           <label>Company or business<input name="company" autoComplete="organization" /></label>

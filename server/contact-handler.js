@@ -22,9 +22,6 @@ export async function submitContactInquiry(payload, headers = {}) {
   }
 
   if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return reply(400, 'Please check the form and try again.')
-  // Quietly accept honeypot submissions without saving them.
-  if (text(payload.website)) return reply(200)
-
   const inquiry = {
     name: text(payload.name),
     email: text(payload.email).toLowerCase(),
