@@ -74,9 +74,19 @@ export function Cursor() {
 
 /* ---- nav ---- */
 export function Nav() {
+  const [isHome, setIsHome] = useState(() => typeof window === 'undefined' || window.scrollY <= 1)
+  useEffect(() => {
+    const update = () => setIsHome((current) => {
+      const next = window.scrollY <= 1
+      return current === next ? current : next
+    })
+    addEventListener('scroll', update, { passive: true })
+    update()
+    return () => removeEventListener('scroll', update)
+  }, [])
   const items = [['top','Home'],['services','Services'],['projects','Our Work'],['freelance','Client Work'],['process','Our Process'],['about','About Us'],['contact','Contact']]
   return (
-    <header className="nav">
+    <header className={`nav${isHome ? ' is-home' : ' is-scrolled'}`}>
       <a href="#top" onClick={go('top')} className="nav-name">Autometrics</a>
       <nav aria-label="Main navigation">{items.map(([id,label]) => <a key={id} href={'#'+id} onClick={go(id)}>{label}</a>)}</nav>
       <a className="nav-cta" href="#contact" onClick={go('contact')}>Discuss Your Project</a>

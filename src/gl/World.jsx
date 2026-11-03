@@ -119,9 +119,9 @@ function Orbit() {
 }
 
 /* ------------------------------------------------------------------ project viewer (dissolve + chromatic shift) */
-const PVS = `varying vec2 vUv;uniform float uTime,uHover;uniform vec2 uPtr;
-void main(){vUv=uv;vec3 p=position;float d=distance(uv,uPtr);p.z+=sin(uv.x*6.+uTime*.8)*.035*(.4+uHover)+exp(-d*d*9.)*.28*uHover;gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.);}`
-const PFS = `uniform sampler2D uA,uB;uniform float uMix,uHover,uVel,uAA,uAB,uPA;varying vec2 vUv;
+const PVS = `varying vec2 vUv;uniform float uTime,uHover,uMobile;uniform vec2 uPtr;
+void main(){vUv=uv;vec3 p=position;float d=distance(uv,uPtr);float motion=mix(1.,.28,uMobile);p.z+=sin(uv.x*6.+uTime*.8)*.035*(.4+uHover)*motion+exp(-d*d*9.)*.28*uHover*motion;gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.);}`
+const PFS = `uniform sampler2D uA,uB;uniform float uMix,uHover,uVel,uAA,uAB,uPA,uMobile;varying vec2 vUv;
 float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
 float n(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(h(i),h(i+vec2(1,0)),f.x),mix(h(i+vec2(0,1)),h(i+vec2(1,1)),f.x),f.y);}
 vec2 cover(vec2 uv,float ia){vec2 s=vec2(1.);if(ia>uPA)s.x=uPA/ia;else s.y=ia/uPA;return (uv-.5)*s+.5;}
@@ -129,15 +129,16 @@ void main(){float m=smoothstep(0.,1.,clamp(uMix*1.5-n(vUv*5.)*.5,0.,1.));
 vec2 off=(vUv-.5)*(uVel*.02+m*(1.-m)*.12);vec2 ua=cover(vUv,uAA),ub=cover(vUv,uAB);float sp=.004+abs(uVel)*.004+m*(1.-m)*.03;
 vec3 ca=vec3(texture2D(uA,ua+off+vec2(sp,0.)).r,texture2D(uA,ua+off).g,texture2D(uA,ua+off-vec2(sp,0.)).b);
 vec3 cb=vec3(texture2D(uB,ub-off+vec2(sp,0.)).r,texture2D(uB,ub-off).g,texture2D(uB,ub-off-vec2(sp,0.)).b);
-vec3 col=mix(ca,cb,m);col=pow(col,vec3(2.2))*mix(.62,.95,uHover);
+vec3 col=mix(ca,cb,m);col=pow(col,vec3(2.2))*mix(.62,.95,uHover)*mix(1.,.72,uMobile);
 vec2 q=abs(vUv-.5)-.5+.025;float r=length(max(q,0.))-.025;gl_FragColor=vec4(col,1.-smoothstep(-.002,.004,r));}`
 function ProjectViewer({ scope = 'selected' }) {
   const mesh = useRef(), shown = useRef({ project: 0, shot: 0 }), [, setLoadedRevision] = useState(0)
+  const mobile = useThree((state) => state.size.width < 620)
   const selectedActive = useUI((s) => s.active)
   const active = scope === 'client' ? 0 : Math.min(selectedActive, 5)
   const projectShots = useMemo(() => scope === 'client' ? [SHOWCASE_SHOTS[6]] : SHOWCASE_SHOTS.slice(0, 6), [scope])
   const { U, texs } = useMemo(() => {
-    const loader = new THREE.TextureLoader(), u = { uA: { value: null }, uB: { value: null }, uMix: { value: 0 }, uHover: { value: 0 }, uVel: { value: 0 }, uTime: { value: 0 }, uPtr: { value: new THREE.Vector2(0.5, 0.5) }, uAA: { value: 1.78 }, uAB: { value: 1.78 }, uPA: { value: 1.78 } }
+    const loader = new THREE.TextureLoader(), u = { uA: { value: null }, uB: { value: null }, uMix: { value: 0 }, uHover: { value: 0 }, uVel: { value: 0 }, uTime: { value: 0 }, uMobile: { value: 0 }, uPtr: { value: new THREE.Vector2(0.5, 0.5) }, uAA: { value: 1.78 }, uAB: { value: 1.78 }, uPA: { value: 1.78 } }
     const ts = projectShots.map((shots, project) => shots.map((src, shot) => loader.load(src, (t) => {
       t.anisotropy = 4; t.userData.asp = t.image.width / t.image.height
       if (project === 0 && shot === 0) { u.uA.value = u.uB.value = t; u.uAA.value = u.uAB.value = t.userData.asp }
@@ -171,9 +172,12 @@ function ProjectViewer({ scope = 'selected' }) {
   useFrame((state) => {
     const t = state.clock.elapsedTime, m = mesh.current; if (!m.parent.visible) return
     U.uTime.value = t; U.uVel.value += (cl(ST.vel * 0.15, -1, 1) - U.uVel.value) * 0.1
-    U.uHover.value += ((useUI.getState().rowHover ? 1 : 0.25) - U.uHover.value) * 0.08
+    U.uMobile.value = mobile ? 1 : 0
+    U.uHover.value += ((useUI.getState().rowHover ? (mobile ? 0.42 : 1) : 0.25) - U.uHover.value) * 0.08
     U.uPtr.value.set(0.5 + ST.mx * 0.9, 0.5 - ST.my * 0.9)
-    m.rotation.y += ((ST.rm ? -0.12 : -ST.mx * 0.45 - 0.12) - m.rotation.y) * 0.06; m.rotation.x += ((ST.rm ? 0 : ST.my * 0.3) - m.rotation.x) * 0.06
+    const rotateY = ST.rm ? -0.12 : mobile ? Math.sin(t * 0.16) * 0.045 - 0.04 : -ST.mx * 0.45 - 0.12
+    const rotateX = ST.rm || mobile ? 0 : ST.my * 0.3
+    m.rotation.y += (rotateY - m.rotation.y) * 0.06; m.rotation.x += (rotateX - m.rotation.x) * 0.06
     m.position.x = ST.rm ? 0 : Math.sin(t * 0.34) * 0.035
     m.position.y = ST.rm ? 0 : Math.sin(t * 0.48) * 0.025
   })
@@ -187,6 +191,7 @@ function ProjectViewer({ scope = 'selected' }) {
 /* ------------------------------------------------------------------ contact network (converges to a point) */
 function Network() {
   const pts = useRef(), lines = useRef(), core = useRef(), rings = useRef([])
+  const mobile = useThree((state) => state.size.width < 620)
   const base = useMemo(() => Array.from({ length: 180 }, () => { const u = Math.random() * 2 - 1, th = Math.random() * 6.283, r = 1.6 + Math.random() * 1.8, s = Math.sqrt(1 - u * u); return [Math.cos(th) * s * r, u * r * 0.7, Math.sin(th) * s * r, Math.random() * 6.283] }), [])
   const pg = useMemo(() => new THREE.BufferGeometry().setAttribute('position', new THREE.BufferAttribute(new Float32Array(180 * 3), 3)), [])
   const lg = useMemo(() => new THREE.BufferGeometry().setAttribute('position', new THREE.BufferAttribute(new Float32Array(180 * 6), 3)), [])
@@ -195,14 +200,14 @@ function Network() {
     const t = state.clock.elapsedTime, k = sm(cl(1 - Math.abs(ST.s - 6))), P = pg.attributes.position.array, L = lg.attributes.position.array, c = ST.rm ? 0 : t
     base.forEach((b, i) => { const s = 1 - 0.8 * k, x = (b[0] * Math.cos(c * 0.1 + b[3] * 0.05) - b[2] * Math.sin(c * 0.1)) * s, z = (b[0] * Math.sin(c * 0.1) + b[2] * Math.cos(c * 0.1)) * s, y = b[1] * s + Math.sin(c + b[3]) * 0.04; P.set([x, y, z], i * 3); L.set([x, y, z, 0, 0, 0], i * 6) })
     pg.attributes.position.needsUpdate = true; lg.attributes.position.needsUpdate = true
-    lines.current.material.opacity = 0.04 + 0.2 * k; core.current.scale.setScalar(0.12 + 0.15 * k + Math.sin(t * 2) * 0.006)
-    rings.current.forEach((r, i) => { r.scale.setScalar(0.3 + k * (0.4 + i * 0.24) + ((t * 0.3 + i * 0.5) % 1) * 0.12 * k); r.material.opacity = 0.28 * k * (1 - ((t * 0.3 + i * 0.5) % 1)) })
+    lines.current.material.opacity = (0.04 + 0.2 * k) * (mobile ? 0.3 : 1); core.current.scale.setScalar(0.12 + 0.15 * k + Math.sin(t * 2) * 0.006)
+    rings.current.forEach((r, i) => { r.scale.setScalar(0.3 + k * (0.4 + i * 0.24) + ((t * 0.3 + i * 0.5) % 1) * 0.12 * k); r.material.opacity = 0.28 * k * (1 - ((t * 0.3 + i * 0.5) % 1)) * (mobile ? 0.3 : 1) })
   })
   return (
-    <group>
-      <points ref={pts} geometry={pg}><pointsMaterial size={0.03} color={new THREE.Color(0.72, 0.82, 1.0)} transparent opacity={0.72} blending={THREE.AdditiveBlending} depthWrite={false} toneMapped={false} /></points>
+    <group scale={mobile ? 0.55 : 1}>
+      <points ref={pts} geometry={pg}><pointsMaterial size={0.03} color={new THREE.Color(0.72, 0.82, 1.0)} transparent opacity={mobile ? 0.35 : 0.72} blending={THREE.AdditiveBlending} depthWrite={false} toneMapped={false} /></points>
       <lineSegments ref={lines} geometry={lg}><lineBasicMaterial color={new THREE.Color(2, 0.45, 0.25)} transparent opacity={0.2} blending={THREE.AdditiveBlending} depthWrite={false} toneMapped={false} /></lineSegments>
-      <mesh ref={core}><sphereGeometry args={[1, 32, 32]} /><meshBasicMaterial color={new THREE.Color(1.6, 0.48, 0.24)} toneMapped={false} /></mesh>
+      <mesh ref={core}><sphereGeometry args={[1, 32, 32]} /><meshBasicMaterial color={new THREE.Color(1.6, 0.48, 0.24)} transparent opacity={mobile ? 0.55 : 1} toneMapped={false} /></mesh>
       {[0, 1, 2].map((i) => <mesh key={i} ref={(el) => (rings.current[i] = el)} rotation={[Math.PI / 2.4, 0, 0]}><torusGeometry args={[1.2, 0.006, 8, 120]} /><meshBasicMaterial color={new THREE.Color(0.6, 0.8, 2.4)} transparent toneMapped={false} /></mesh>)}
     </group>
   )
@@ -212,11 +217,11 @@ function Network() {
 const LAYOUT = [
   { d: [2.1, 0, 1.45], m: [0, -1.65, 0.58] },
   { d: [1.95, -0.1, 0.74], m: [0, 1.9, 0.38] },
-  { d: [-2.3, 0, 1.5], m: [0, 1.4, 1.0] },
+  { d: [-2.3, 0, 1.5], m: [0, 1.25, 0.72] },
   { d: [1.85, 0, 0.86], m: [0, 1.7, 0.52] },
   { d: [1.85, 0, 0.86], m: [0, 1.7, 0.52] },
   { d: [0, 0, 1.25], m: [0, 0, 0.9] },
-  { d: [0, 0, 1.25], m: [0, 0, 0.9] },
+  { d: [0, 0, 1.25], m: [0, 0, 0.55] },
 ]
 function Station({ i, children }) {
   const g = useRef()
@@ -235,7 +240,7 @@ function Rig() {
 function Effects() {
   const ca = useRef(), mob = useThree((s) => s.size.width < 700)
   const off = useMemo(() => new THREE.Vector2(0, 0), [])
-  useFrame(() => { if (ca.current) { const v = ST.rm ? 0 : cl(Math.abs(ST.vel) * 0.00035, 0, 0.004); ca.current.offset.set(0.0004 + v, 0.0003 + v * 0.6) } })
+  useFrame(() => { if (ca.current) { const v = ST.rm ? 0 : cl(Math.abs(ST.vel) * 0.00035, 0, 0.004); ca.current.offset.set((mob ? 0.00008 : 0.0004) + v * (mob ? 0.16 : 1), (mob ? 0.00006 : 0.0003) + v * (mob ? 0.1 : 0.6)) } })
   return (
     <EffectComposer multisampling={0} disableNormalPass>
       <Bloom mipmapBlur intensity={mob ? 0.35 : 0.48} luminanceThreshold={0.35} luminanceSmoothing={0.4} />
